@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve",
+    "dev": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "base64toblob": "^0.0.1",
+    "blueimp-canvas-to-blob": "^3.28.0",
     "core-js": "^3.6.5",
     "vue": "^2.6.11"
   },
