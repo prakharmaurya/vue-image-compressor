@@ -1,5 +1,7 @@
 # compressor
 
+Supply image size in kB
+
 ## Project setup
 ```
 npm install
