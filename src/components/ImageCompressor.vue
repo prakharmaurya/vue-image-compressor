@@ -20,41 +20,6 @@
 
 <script>
 import base64toblob from "base64toblob";
-/**
- * vue-ImageUploader: a to-the-point vue-component for client-side image upload with resizing of images (JPG, PNG, GIF)
- *
- * Code based on ImageUploader (c) Ross Turner (https://github.com/rossturner/HTML5-ImageUploader) and
- * exif.js (https://github.com/exif-js/exif-js) for JPEG autoRotate functions
- * Adapted for Vue by Svale Fossåskaret / Kartoteket with some modifications.
- *
- *
- * TODO Items:
- * 1. Progress Report
- * 2. Multiple Files / async handling
- * 3. Support custom completion callback
- * 4. Propper unit testing with https://github.com/visionmedia/supertest
- *
- * LICENSE (from original ImageUploader files by Ross Turner):
- *
- * Copyright (c) 2012 Ross Turner and contributors (https://github.com/zsinj)
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- **/
-
-import EXIF from "../utils/exif.js";
-import dataURLtoBlob from "blueimp-canvas-to-blob";
 
 export default {
   name: "image-uploader",
@@ -217,18 +182,16 @@ export default {
   methods: {
     reduceSizeTo(file) {
       this.handleFile(file);
-      this.$on("onComplete", (processedFile) => {
-        if (processedFile) {
+      this.$on("onComplete", (processedImg) => {
+        if (processedImg) {
           // Multi photo preview
           // var image = new Image();
-          // image.src = processedFile.dataUrl;
+          // image.src = processedImg.dataUrl;
           // document.body.appendChild(image);
-          let blob = base64toblob(
-            processedFile.dataUrl.split(",")[1],
-            "image/jpeg"
-          );
+
+          let blob = base64toblob(processedImg.split(",")[1], "image/jpeg");
           if (blob.size > this.sizeTo * 1024) {
-            if (this.maxSize < 0.1 || this.quality < 0.02) {
+            if (this.maxSize < 0.1 && this.quality < 0.02) {
               console.log("snap", this.maxSize, this.quality);
               return;
             }
@@ -238,7 +201,7 @@ export default {
             console.log("compressing", this.maxSize, this.quality, blob);
           } else {
             console.log(blob);
-            this.$emit("doneCompression", blob);
+            this.$emit("doneCompression", this.formatOutput(processedImg));
             console.log("compressed Done!!!");
           }
         }
@@ -271,8 +234,8 @@ export default {
       this.$emit("onUpload");
     },
 
-    emitComplete(previewFile) {
-      this.$emit("onComplete", previewFile);
+    emitComplete(imageData) {
+      this.$emit("onComplete", imageData);
     },
 
     /**
@@ -311,16 +274,7 @@ export default {
           img.src = e.target.result;
           img.onload = function() {
             that.log("img.onload() is triggered", 2);
-
-            // this extracts exifdata if available. Returns an empty object if not
-            EXIF.getData(img, function() {
-              that.exifData = this.exifdata;
-              if (Object.keys(that.exifData).length === 0) {
-                that.log("ImageUploader: exif data found and extracted", 2);
-              }
-            });
-
-            that.scaleImage(img, that.exifData.Orientation);
+            that.scaleImage(img);
           };
         };
         reader.readAsDataURL(file);
@@ -332,7 +286,7 @@ export default {
      * @param  {HTMLElement} img -  A document img element containing the uploaded file as a base764 encoded string as source
      * @param  {int} [orientation = 1] - Exif-extracted orientation code
      */
-    scaleImage(img, orientation = 1) {
+    scaleImage(img) {
       this.log("scaleImage() is called", 2);
 
       let canvas = document.createElement("canvas");
@@ -341,55 +295,6 @@ export default {
       const ctx = canvas.getContext("2d");
       ctx.save();
 
-      // Good explanation of EXIF orientation is here http://www.daveperrett.com/articles/2012/07/28/exif-orientation-handling-is-a-ghetto/
-      if (this.autoRotate && orientation > 1) {
-        this.log(
-          "ImageUploader: rotating image as per EXIF orientation tag = " +
-            orientation
-        );
-        const width = canvas.width;
-        const styleWidth = canvas.style.width;
-        const height = canvas.height;
-        const styleHeight = canvas.style.height;
-
-        if (orientation > 4) {
-          canvas.width = height;
-          canvas.style.width = styleHeight;
-          canvas.height = width;
-          canvas.style.height = styleWidth;
-        }
-        switch (orientation) {
-          case 2:
-            ctx.translate(width, 0);
-            ctx.scale(-1, 1);
-            break;
-          case 3:
-            ctx.translate(width, height);
-            ctx.rotate(Math.PI);
-            break;
-          case 4:
-            ctx.translate(0, height);
-            ctx.scale(1, -1);
-            break;
-          case 5:
-            ctx.rotate(0.5 * Math.PI);
-            ctx.scale(1, -1);
-            break;
-          case 6:
-            ctx.rotate(0.5 * Math.PI);
-            ctx.translate(0, -height);
-            break;
-          case 7:
-            ctx.rotate(0.5 * Math.PI);
-            ctx.translate(width, -height);
-            ctx.scale(-1, 1);
-            break;
-          case 8:
-            ctx.rotate(-0.5 * Math.PI);
-            ctx.translate(-width, 0);
-            break;
-        }
-      }
       ctx.drawImage(img, 0, 0);
       ctx.restore();
 
@@ -465,7 +370,7 @@ export default {
       // this.emitEvent(this.currentFile) // DEBUG
       this.emitEvent(this.formatOutput(imageData));
 
-      this.emitComplete(this.formatOutput(imageData));
+      this.emitComplete(imageData);
     },
 
     /**
@@ -617,14 +522,15 @@ export default {
       }
 
       if (this.outputFormat === "blob") {
-        if (typeof dataURLtoBlob === "undefined") {
+        if (typeof base64toblob === "undefined") {
           console.log(
-            'Missing library! blueimp-canvas-to-blob.js must be loaded to output as "blob"'
+            'Missing library! base64toblob must be loaded to output as "blob"'
           );
           console.log("Falling back to default base64 dataUrl");
           return imageData;
         }
-        return dataURLtoBlob(imageData);
+        const blob = base64toblob(imageData.split(",")[1], "image/jpeg");
+        return blob;
       }
 
       const info = {
