@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <p v-if="!hasImage">Loading....</p>
-    <image-uploader
+    <image-compressor
       :preview="true"
       :sizeTo="200"
       :capture="false"
@@ -16,17 +16,17 @@
           hasImage ? "Replace" : "Upload"
         }}</span>
       </label>
-    </image-uploader>
+    </image-compressor>
   </div>
 </template>
 
 <script>
-import ImageUploader from "./components/ImageUploader.vue";
+import ImageCompressor from "./components/ImageCompressor.vue";
 
 export default {
   name: "app",
   components: {
-    ImageUploader,
+    ImageCompressor,
   },
   data() {
     return { hasImage: false };
