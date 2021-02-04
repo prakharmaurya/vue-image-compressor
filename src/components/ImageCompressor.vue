@@ -233,7 +233,7 @@ export default {
     },
 
     emitComplete(imageData) {
-      this.$emit("onComplete", this.formatOutput(imageData));
+      this.$emit("onComplete", imageData);
     },
 
     /**
